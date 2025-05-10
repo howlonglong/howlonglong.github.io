@@ -1,0 +1,171 @@
+<!DOCTYPE html><html lang="zh-CN" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0,viewport-fit=cover"><title>再复习：分库分表常见问题整理 | Hexo</title><meta name="author" content="多久"><meta name="copyright" content="多久"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="再复习：分库分表常见问题整理一.非分片键如何查询？方法1：冗余法设置两个分片键，分别做两个分库分表的实现 缺点：数据冗余太大 方法2：索引表法索引表法是对第一种冗余法的改进，由于第一种方案冗余的数据量太大，所以索引表方案中只创建一个包含分片键和查询条件的索引表，在插入订单时再插入一条数据到索引表中。 方法3：基因法（最重要）基因法的核心，就是把分片键的信息插入到查询条件中假如我们分了十六个表，那哈">
+<meta property="og:type" content="article">
+<meta property="og:title" content="再复习：分库分表常见问题整理">
+<meta property="og:url" content="http://howlonglong.github.io/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/index.html">
+<meta property="og:site_name" content="Hexo">
+<meta property="og:description" content="再复习：分库分表常见问题整理一.非分片键如何查询？方法1：冗余法设置两个分片键，分别做两个分库分表的实现 缺点：数据冗余太大 方法2：索引表法索引表法是对第一种冗余法的改进，由于第一种方案冗余的数据量太大，所以索引表方案中只创建一个包含分片键和查询条件的索引表，在插入订单时再插入一条数据到索引表中。 方法3：基因法（最重要）基因法的核心，就是把分片键的信息插入到查询条件中假如我们分了十六个表，那哈">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="http://howlonglong.github.io/img/butterfly-icon.png">
+<meta property="article:published_time" content="2025-05-10T12:28:54.452Z">
+<meta property="article:modified_time" content="2025-05-10T12:29:00.000Z">
+<meta property="article:author" content="多久">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://howlonglong.github.io/img/butterfly-icon.png"><script type="application/ld+json">{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "再复习：分库分表常见问题整理",
+  "url": "http://howlonglong.github.io/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/",
+  "image": "http://howlonglong.github.io/img/butterfly-icon.png",
+  "datePublished": "2025-05-10T12:28:54.452Z",
+  "dateModified": "2025-05-10T12:29:00.000Z",
+  "author": [
+    {
+      "@type": "Person",
+      "name": "多久",
+      "url": "http://howlonglong.github.io/"
+    }
+  ]
+}</script><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://howlonglong.github.io/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css"><script>
+    (() => {
+      
+    const saveToLocal = {
+      set: (key, value, ttl) => {
+        if (!ttl) return
+        const expiry = Date.now() + ttl * 86400000
+        localStorage.setItem(key, JSON.stringify({ value, expiry }))
+      },
+      get: key => {
+        const itemStr = localStorage.getItem(key)
+        if (!itemStr) return undefined
+        const { value, expiry } = JSON.parse(itemStr)
+        if (Date.now() > expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return value
+      }
+    }
+
+    window.btf = {
+      saveToLocal,
+      getScript: (url, attr = {}) => new Promise((resolve, reject) => {
+        const script = document.createElement('script')
+        script.src = url
+        script.async = true
+        Object.entries(attr).forEach(([key, val]) => script.setAttribute(key, val))
+        script.onload = script.onreadystatechange = () => {
+          if (!script.readyState || /loaded|complete/.test(script.readyState)) resolve()
+        }
+        script.onerror = reject
+        document.head.appendChild(script)
+      }),
+      getCSS: (url, id) => new Promise((resolve, reject) => {
+        const link = document.createElement('link')
+        link.rel = 'stylesheet'
+        link.href = url
+        if (id) link.id = id
+        link.onload = link.onreadystatechange = () => {
+          if (!link.readyState || /loaded|complete/.test(link.readyState)) resolve()
+        }
+        link.onerror = reject
+        document.head.appendChild(link)
+      }),
+      addGlobalFn: (key, fn, name = false, parent = window) => {
+        if (!false && key.startsWith('pjax')) return
+        const globalFn = parent.globalFn || {}
+        globalFn[key] = globalFn[key] || {}
+        globalFn[key][name || Object.keys(globalFn[key]).length] = fn
+        parent.globalFn = globalFn
+      }
+    }
+  
+      
+      const activateDarkMode = () => {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      const activateLightMode = () => {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+
+      btf.activateDarkMode = activateDarkMode
+      btf.activateLightMode = activateLightMode
+
+      const theme = saveToLocal.get('theme')
+    
+          theme === 'dark' ? activateDarkMode() : theme === 'light' ? activateLightMode() : null
+        
+      
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        document.documentElement.classList.toggle('hide-aside', asideStatus === 'hide')
+      }
+    
+      
+    const detectApple = () => {
+      if (/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)) {
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+  
+    })()
+  </script><script>const GLOBAL_CONFIG = {
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  highlight: {"plugin":"highlight.js","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false,"highlightFullpage":false,"highlightMacStyle":false},
+  copy: {
+    success: '复制成功',
+    error: '复制失败',
+    noSupport: '浏览器不支持'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  dateSuffix: {
+    just: '刚刚',
+    min: '分钟前',
+    hour: '小时前',
+    day: '天前',
+    month: '个月前'
+  },
+  copyright: undefined,
+  lightbox: 'null',
+  Snackbar: undefined,
+  infinitegrid: {
+    js: 'https://cdn.jsdelivr.net/npm/@egjs/infinitegrid/dist/infinitegrid.min.js',
+    buttonText: '加载更多'
+  },
+  isPhotoFigcaption: false,
+  islazyloadPlugin: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  },
+  autoDarkmode: false
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '再复习：分库分表常见问题整理',
+  isHighlightShrink: false,
+  isToc: true,
+  pageType: 'post'
+}</script><meta name="generator" content="Hexo 7.3.0"></head><body><div class="post" id="body-wrap"><header class="post-bg" id="page-header"><nav id="nav"><span id="blog-info"><a class="nav-site-title" href="/"><span class="site-name">Hexo</span></a><a class="nav-page-title" href="/"><span class="site-name">再复习：分库分表常见问题整理</span></a></span><div id="menus"></div></nav><div id="post-info"><h1 class="post-title">再复习：分库分表常见问题整理</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">发表于</span><time class="post-meta-date-created" datetime="2025-05-10T12:28:54.452Z" title="发表于 2025-05-10 20:28:54">2025-05-10</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">更新于</span><time class="post-meta-date-updated" datetime="2025-05-10T12:29:00.000Z" title="更新于 2025-05-10 20:29:00">2025-05-10</time></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title=""><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">浏览量:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="container post-content" id="article-container"><h1 id="再复习：分库分表常见问题整理"><a href="#再复习：分库分表常见问题整理" class="headerlink" title="再复习：分库分表常见问题整理"></a>再复习：分库分表常见问题整理</h1><h2 id="一-非分片键如何查询？"><a href="#一-非分片键如何查询？" class="headerlink" title="一.非分片键如何查询？"></a>一.非分片键如何查询？</h2><h3 id="方法1：冗余法"><a href="#方法1：冗余法" class="headerlink" title="方法1：冗余法"></a>方法1：冗余法</h3><p>设置两个分片键，分别做两个分库分表的实现</p>
+<p>缺点：数据冗余太大</p>
+<h3 id="方法2：索引表法"><a href="#方法2：索引表法" class="headerlink" title="方法2：索引表法"></a>方法2：索引表法</h3><p>索引表法是对第一种冗余法的改进，由于第一种方案冗余的数据量太大，所以索引表方案中只创建一个包含分片键和查询条件的索引表，在插入订单时再插入一条数据到索引表中。</p>
+<h3 id="方法3：基因法（最重要）"><a href="#方法3：基因法（最重要）" class="headerlink" title="方法3：基因法（最重要）"></a>方法3：基因法（最重要）</h3><h4 id="基因法的核心，就是把分片键的信息插入到查询条件中"><a href="#基因法的核心，就是把分片键的信息插入到查询条件中" class="headerlink" title="基因法的核心，就是把分片键的信息插入到查询条件中"></a>基因法的核心，就是把分片键的信息插入到查询条件中</h4><p>假如我们分了十六个表，那哈希分表其实就是哈希值除以16的余数。也就是哈希值的最后四个比特位决定了分到哪个分片。</p>
+<p>那么我们在构建查询条件时，只需要在最后四个比特位携带上分片键的最后四位就好了。</p>
+<p>具体例子：假如有一个用户优惠券表，主要包含三个重要id：主键id，用户id，店铺id，用户id是分片键。此时我们想要使用主键id进行查询，那么在构建主键id时，设置最后四位为用户id的最后四位。此时不管是用主键id查询还是用户id查询，最后对16取模，结果都会是同一个分片。</p>
+<h4 id="问题：如果要用店铺id查，该怎么办"><a href="#问题：如果要用店铺id查，该怎么办" class="headerlink" title="问题：如果要用店铺id查，该怎么办"></a>问题：如果要用店铺id查，该怎么办</h4><p>可以使用冗余法，分别按照店铺id和用户id使用两种分库分表方案</p>
+<h2 id="二-跨数据库连表查询"><a href="#二-跨数据库连表查询" class="headerlink" title="二.跨数据库连表查询"></a>二.跨数据库连表查询</h2><h3 id="1-当使用shardingSpare进行连表查询时："><a href="#1-当使用shardingSpare进行连表查询时：" class="headerlink" title="1.当使用shardingSpare进行连表查询时："></a>1.当使用shardingSpare进行连表查询时：</h3><p>如果两个表的分片键都是on的条件的话，则会直接去对应库中查询；否则就会进行广播查询</p>
+<h3 id="2-设置数据冗余，避免连表查询"><a href="#2-设置数据冗余，避免连表查询" class="headerlink" title="2.设置数据冗余，避免连表查询"></a>2.设置数据冗余，避免连表查询</h3><h3 id="3-在业务层进行组装，分别进行查询"><a href="#3-在业务层进行组装，分别进行查询" class="headerlink" title="3.在业务层进行组装，分别进行查询"></a>3.在业务层进行组装，分别进行查询</h3><h2 id="三-分库分表扩容"><a href="#三-分库分表扩容" class="headerlink" title="三.分库分表扩容"></a>三.分库分表扩容</h2><h3 id="1-停机扩容"><a href="#1-停机扩容" class="headerlink" title="1.停机扩容"></a>1.停机扩容</h3><h3 id="2-不停机扩容"><a href="#2-不停机扩容" class="headerlink" title="2.不停机扩容"></a>2.不停机扩容</h3><p>可以使用ShardingSphere-Scaling，首先会创建一套新的订单数据库，将历史数据按照新的路由规则分配到新的数据库中，并在旧数据库的操作中开启双写，同时写入到两个数据库。然后用新的读写服务逐步替代旧服务，同步进行数据不一致校验，最后完成全面切流。</p>
+<h3 id="3-分片算法选择"><a href="#3-分片算法选择" class="headerlink" title="3.分片算法选择"></a>3.分片算法选择</h3><p>可以使用一致性哈希算法，可以保证最少数量的数据迁移。一致性哈希算法会选择顺时针方向距离最近的节点作为分片节点，所以每次最多只会迁移一个数据库的数据</p>
+</article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta"><i class="fas fa-circle-user fa-fw"></i>文章作者: </span><span class="post-copyright-info"><a href="http://howlonglong.github.io">多久</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta"><i class="fas fa-square-arrow-up-right fa-fw"></i>文章链接: </span><span class="post-copyright-info"><a href="http://howlonglong.github.io/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/">http://howlonglong.github.io/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta"><i class="fas fa-circle-exclamation fa-fw"></i>版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来源 <a href="http://howlonglong.github.io" target="_blank">Hexo</a>！</span></div></div><div class="tag_share"><div class="post-share"><div class="social-share" data-image="/img/butterfly-icon.png" data-sites="facebook,twitter,wechat,weibo,qq"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/css/share.min.css" media="print" onload="this.media='all'"><script src="https://cdn.jsdelivr.net/npm/butterfly-extsrc/sharejs/dist/js/social-share.min.js" defer></script></div></div><nav class="pagination-post" id="pagination"><a class="pagination-related full-width" href="/2025/05/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" title="分布式事务"><div class="cover" style="background: var(--default-bg-color)"></div><div class="info"><div class="info-1"><div class="info-item-1">上一篇</div><div class="info-item-2">分布式事务</div></div><div class="info-2"><div class="info-item-1">分布式事务分布式事务理论基础：CAP、BASECAP也就是 Consistency（一致性）、Availability（可用性）、Partition Tolerance（分区容错性） 这三个单词首字母组合。CAP 定理（CAP theorem）指出对于一个分布式系统来说，当设计读写操作时，只能能同时满足以下三点中的两个 一致性（Consistence） : 所有节点访问同一份最新的数据副本  可用性（Availability）: 非故障的节点在合理的时间内返回合理的响应（不是错误或者超时的响应）  分区容错性（Partition tolerance） : 分布式系统出现网络分区的时候，仍然能够对外提供服务 什么是网络分区？ 分布式系统中，多个节点之前的网络本来是连通的，但是因为某些故障（比如部分节点网络出了问题）某些节点之间不连通了，整个网络就分成了几块区域，这就叫网络分区。    不是所谓的“3 选 2”大部分人解释这一定律时，常常简单的表述为：“一致性、可用性、分区容忍性三者你只能同时达到其中两个，不可能同时达到”。实际上这是一个非常具有误导性质的说法，而且在 CAP...</div></div></div></a></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info text-center"><div class="avatar-img"><img src="/img/butterfly-icon.png" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info-name">多久</div><div class="author-info-description"></div><div class="site-data"><a href="/archives/"><div class="headline">文章</div><div class="length-num">3</div></a><a href="/tags/"><div class="headline">标签</div><div class="length-num">0</div></a><a href="/categories/"><div class="headline">分类</div><div class="length-num">0</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/xxxxxx"><i class="fab fa-github"></i><span>Follow Me</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>公告</span></div><div class="announcement_content">This is my Blog</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>目录</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86"><span class="toc-number">1.</span> <span class="toc-text">再复习：分库分表常见问题整理</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%80-%E9%9D%9E%E5%88%86%E7%89%87%E9%94%AE%E5%A6%82%E4%BD%95%E6%9F%A5%E8%AF%A2%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">一.非分片键如何查询？</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%B3%951%EF%BC%9A%E5%86%97%E4%BD%99%E6%B3%95"><span class="toc-number">1.1.1.</span> <span class="toc-text">方法1：冗余法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%B3%952%EF%BC%9A%E7%B4%A2%E5%BC%95%E8%A1%A8%E6%B3%95"><span class="toc-number">1.1.2.</span> <span class="toc-text">方法2：索引表法</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%96%B9%E6%B3%953%EF%BC%9A%E5%9F%BA%E5%9B%A0%E6%B3%95%EF%BC%88%E6%9C%80%E9%87%8D%E8%A6%81%EF%BC%89"><span class="toc-number">1.1.3.</span> <span class="toc-text">方法3：基因法（最重要）</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%9F%BA%E5%9B%A0%E6%B3%95%E7%9A%84%E6%A0%B8%E5%BF%83%EF%BC%8C%E5%B0%B1%E6%98%AF%E6%8A%8A%E5%88%86%E7%89%87%E9%94%AE%E7%9A%84%E4%BF%A1%E6%81%AF%E6%8F%92%E5%85%A5%E5%88%B0%E6%9F%A5%E8%AF%A2%E6%9D%A1%E4%BB%B6%E4%B8%AD"><span class="toc-number">1.1.3.1.</span> <span class="toc-text">基因法的核心，就是把分片键的信息插入到查询条件中</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E9%97%AE%E9%A2%98%EF%BC%9A%E5%A6%82%E6%9E%9C%E8%A6%81%E7%94%A8%E5%BA%97%E9%93%BAid%E6%9F%A5%EF%BC%8C%E8%AF%A5%E6%80%8E%E4%B9%88%E5%8A%9E"><span class="toc-number">1.1.3.2.</span> <span class="toc-text">问题：如果要用店铺id查，该怎么办</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8C-%E8%B7%A8%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E8%A1%A8%E6%9F%A5%E8%AF%A2"><span class="toc-number">1.2.</span> <span class="toc-text">二.跨数据库连表查询</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%BD%93%E4%BD%BF%E7%94%A8shardingSpare%E8%BF%9B%E8%A1%8C%E8%BF%9E%E8%A1%A8%E6%9F%A5%E8%AF%A2%E6%97%B6%EF%BC%9A"><span class="toc-number">1.2.1.</span> <span class="toc-text">1.当使用shardingSpare进行连表查询时：</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E8%AE%BE%E7%BD%AE%E6%95%B0%E6%8D%AE%E5%86%97%E4%BD%99%EF%BC%8C%E9%81%BF%E5%85%8D%E8%BF%9E%E8%A1%A8%E6%9F%A5%E8%AF%A2"><span class="toc-number">1.2.2.</span> <span class="toc-text">2.设置数据冗余，避免连表查询</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%9C%A8%E4%B8%9A%E5%8A%A1%E5%B1%82%E8%BF%9B%E8%A1%8C%E7%BB%84%E8%A3%85%EF%BC%8C%E5%88%86%E5%88%AB%E8%BF%9B%E8%A1%8C%E6%9F%A5%E8%AF%A2"><span class="toc-number">1.2.3.</span> <span class="toc-text">3.在业务层进行组装，分别进行查询</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%B8%89-%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%89%A9%E5%AE%B9"><span class="toc-number">1.3.</span> <span class="toc-text">三.分库分表扩容</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#1-%E5%81%9C%E6%9C%BA%E6%89%A9%E5%AE%B9"><span class="toc-number">1.3.1.</span> <span class="toc-text">1.停机扩容</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#2-%E4%B8%8D%E5%81%9C%E6%9C%BA%E6%89%A9%E5%AE%B9"><span class="toc-number">1.3.2.</span> <span class="toc-text">2.不停机扩容</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#3-%E5%88%86%E7%89%87%E7%AE%97%E6%B3%95%E9%80%89%E6%8B%A9"><span class="toc-number">1.3.3.</span> <span class="toc-text">3.分片算法选择</span></a></li></ol></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>最新文章</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/05/10/%E5%86%8D%E5%A4%8D%E4%B9%A0%EF%BC%9A%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E5%B8%B8%E8%A7%81%E9%97%AE%E9%A2%98%E6%95%B4%E7%90%86/" title="再复习：分库分表常见问题整理">再复习：分库分表常见问题整理</a><time datetime="2025-05-10T12:28:54.452Z" title="发表于 2025-05-10 20:28:54">2025-05-10</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/05/08/%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" title="分布式事务">分布式事务</a><time datetime="2025-05-08T12:45:28.216Z" title="发表于 2025-05-08 20:45:28">2025-05-08</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2025/05/05/hello/" title="测试文章">测试文章</a><time datetime="2025-05-05T12:06:01.682Z" title="发表于 2025-05-05 20:06:01">2025-05-05</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2019 - 2025 By 多久</div><div class="framework-info"><span>框架 </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo 7.3.0</a><span class="footer-separator">|</span><span>主题 </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly 5.3.5</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="阅读模式"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="日间和夜间模式切换"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="单栏和双栏切换"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside-config" type="button" title="设置"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="目录"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="回到顶部"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
